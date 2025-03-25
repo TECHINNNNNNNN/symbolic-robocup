@@ -19,9 +19,10 @@ player(team2, forward, position(90, 30), 100, 3).  % Team 2 forward
 player(team2, defender, position(80, 20), 100, 2). % Team 2 defender
 player(team2, goalkeeper, position(100, 25), 100, 1). % Team 2 goalkeeper
 
-% Move towards the ball
+% Move towards the ball only if stamina is sufficient
 move_towards_ball(Team, Role) :-
     player(Team, Role, position(X1, Y1), Stamina, Speed),
+    Stamina >= Speed,  % Check if player has enough stamina to move
     ball(position(X2, Y2)),
     XDiff is X2 - X1, YDiff is Y2 - Y1,
     sign(XDiff, DX), sign(YDiff, DY),
@@ -33,7 +34,13 @@ move_towards_ball(Team, Role) :-
     NewStamina is Stamina - Speed,
     retract(player(Team, Role, position(X1, Y1), Stamina, Speed)),
     assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed)),
-    format('~w ~w moves to (~w, ~w), stamina ~w~n', [Team, Role, NewX, NewY, NewStamina]).
+    format('~w ~w moves to (~w, ~w), stamina ~w~n', [Team, Role, NewX, NewY, NewStamina]),
+    !.  % Cut to prevent backtracking to the next clause
+
+% If stamina is insufficient, player stays put
+move_towards_ball(Team, Role) :-
+    player(Team, Role, position(X, Y), Stamina, _),
+    format('~w ~w is too tired to move (stamina ~w)~n', [Team, Role, Stamina]).
 
 % Kick the ball toward the opponent's goal
 kick_ball(Team, Role) :-
