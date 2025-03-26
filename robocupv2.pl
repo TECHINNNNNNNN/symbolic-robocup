@@ -9,6 +9,7 @@ goal_position(team2, 0, 25).    % Team 2's goal at the left end
 :- dynamic ball/1.
 :- dynamic player/7.
 :- dynamic game_state/2.
+:- dynamic rested_last_round/2.  % New predicate to track if a player rested last round
 
 % Sign function for movement
 sign(X, 1) :- X > 0.
@@ -33,14 +34,13 @@ move_towards_ball(Team, Role) :-
     NewX is X1 + (DX * Speed),
     NewY is Y1 + (DY * Speed),
     field(size(FieldWidth, FieldHeight)),
-    NewX >= 0, NewX =< FieldWidth,
-    NewY >= 0, NewY =< FieldHeight,
     NewStamina is Stamina - Speed,
     retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending)),
     assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed, Dribbling, Defending)).
 
 % Kick the ball toward the opponent's goal
 kick_ball(Team, Role) :-
+    \+ rested_last_round(Team, Role),  % Player can't kick if they rested last round
     player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending),
     ball(position(X2, Y2)),
     abs(X1 - X2) =< 5, abs(Y1 - Y2) =< 5,
@@ -119,13 +119,10 @@ reset_positions :-
 
 % Simulate one round of the game
 simulate_round :-
-    % Get current round
     game_state(round, Round),
-    
-    % Check for goals first
     (goal_scored(team1) ; goal_scored(team2)),
     !.
-    
+
 simulate_round :-
     game_state(round, Round),
     (Round =:= 30 -> 
@@ -136,11 +133,14 @@ simulate_round :-
     ;
         format('~nRound ~w:~n', [Round])),
     
-    % Players attempt to kick the ball
+    % Players attempt to kick the ball (only if not resting)
     (kick_ball(team1, forward1) ; kick_ball(team1, forward2) ; 
      kick_ball(team2, forward1) ; kick_ball(team2, forward2) ; true),
     
-    % All players move toward the ball
+    % Clear previous round's rest status
+    retractall(rested_last_round(_, _)),
+    
+    % All players move or rest
     move_and_report(team1, forward1),
     move_and_report(team1, forward2),
     move_and_report(team1, defender1),
@@ -150,7 +150,7 @@ simulate_round :-
     move_and_report(team2, defender1),
     move_and_report(team2, defender2),
     
-    % Goalkeepers attempt to catch
+    % Goalkeepers attempt to catch (assuming they don't rest for simplicity)
     (catch_ball(team1) ; catch_ball(team2) ; true),
     
     % Display ball position
@@ -164,6 +164,7 @@ simulate_round :-
         assertz(game_state(round, NewRound))
     ;
         true).
+
 
 % Check for half-time and reset stamina
 check_half_time :-
@@ -180,14 +181,32 @@ check_half_time :-
 % Helper predicate to move and report player status
 move_and_report(Team, Role) :-
     player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending),
+    % Check if player rested last round
+    \+ rested_last_round(Team, Role),
+    % Determine rest probability based on stamina
+    ( Stamina < 10 -> RestChance is 100
+    ; Stamina < 30 -> RestChance is 25
+    ; Stamina < 50 -> RestChance is 10
+    ; RestChance is 0
+    ),
+    random(100) < RestChance,
+    !,  % Cut to prevent backtracking if resting
+    NewStamina is Stamina + 10,
+    retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending)),
+    assertz(player(Team, Role, position(X1, Y1), NewStamina, Speed, Dribbling, Defending)),
+    assertz(rested_last_round(Team, Role)),
+    format('~w ~w rests, stamina restored to ~w~n', [Team, Role, NewStamina]).
+
+move_and_report(Team, Role) :-
+    player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending),
     ball(position(X2, Y2)),
     (Role = defender -> 
         (goal_position(Team, GoalX, _),
-         abs(X1 - GoalX) =< 20) ->  % Defender stays within 20 units of goal
-            (abs(X2 - X1) =< 15 ->  % If ball is within 15 units, move toward it
+         abs(X1 - GoalX) =< 20) -> 
+            (abs(X2 - X1) =< 15 -> 
                 XDiff is X2 - X1, YDiff is Y2 - Y1
             ;
-                XDiff is 0, YDiff is 0)  % Otherwise stay in position
+                XDiff is 0, YDiff is 0)
         ;
         XDiff is X2 - X1, YDiff is Y2 - Y1
     ),
@@ -197,10 +216,8 @@ move_and_report(Team, Role) :-
     field(size(FieldWidth, FieldHeight)),
     NewX >= 0, NewX =< FieldWidth,
     NewY >= 0, NewY =< FieldHeight,
-    % Base stamina deduction for movement
     BaseStamina is Stamina - Speed,
-    % Check for injury (5% chance)
-    (random(20) =:= 0 -> 
+    (random(10) =:= 0 -> 
         NewStamina is BaseStamina - 10,
         InjuryMessage = ' and gets injured (stamina -10)'
     ; 
@@ -225,29 +242,25 @@ run_simulation :-
 
 % Initialize and run the game
 start_game :-
-    % Clear any existing dynamic predicates
     retractall(ball(_)),
     retractall(player(_, _, _, _, _, _, _)),
     retractall(game_state(_, _)),
+    retractall(rested_last_round(_, _)),  % Clear any existing rest states
     
-    % Initialize ball
     assertz(ball(position(50, 25))),
     
-    % Initialize Team 1 players
     assertz(player(team1, forward1, position(30, 20), 100, 3, 70, 30)),
     assertz(player(team1, forward2, position(30, 30), 100, 3, 65, 35)),
     assertz(player(team1, defender1, position(20, 15), 100, 2, 40, 80)),
     assertz(player(team1, defender2, position(20, 35), 100, 2, 45, 75)),
     assertz(player(team1, goalkeeper, position(0, 25), 100, 1, 20, 90)),
     
-    % Initialize Team 2 players
     assertz(player(team2, forward1, position(70, 20), 100, 3, 75, 25)),
     assertz(player(team2, forward2, position(70, 30), 100, 3, 80, 20)),
     assertz(player(team2, defender1, position(80, 15), 100, 2, 35, 85)),
     assertz(player(team2, defender2, position(80, 35), 100, 2, 30, 90)),
     assertz(player(team2, goalkeeper, position(100, 25), 100, 1, 15, 95)),
     
-    % Initialize game state
     assertz(game_state(round, 1)),
     assertz(game_state(score(team1, 0))),
     assertz(game_state(score(team2, 0))),
