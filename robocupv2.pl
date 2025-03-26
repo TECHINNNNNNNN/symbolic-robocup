@@ -197,10 +197,19 @@ move_and_report(Team, Role) :-
     field(size(FieldWidth, FieldHeight)),
     NewX >= 0, NewX =< FieldWidth,
     NewY >= 0, NewY =< FieldHeight,
-    NewStamina is Stamina - Speed,
+    % Base stamina deduction for movement
+    BaseStamina is Stamina - Speed,
+    % Check for injury (5% chance)
+    (random(20) =:= 0 -> 
+        NewStamina is BaseStamina - 10,
+        InjuryMessage = ' and gets injured (stamina -10)'
+    ; 
+        NewStamina is BaseStamina,
+        InjuryMessage = ''
+    ),
     retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending)),
     assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed, Dribbling, Defending)),
-    format('~w ~w moves to (~w, ~w), stamina ~w~n', [Team, Role, NewX, NewY, NewStamina]).
+    format('~w ~w moves to (~w, ~w), stamina ~w~w~n', [Team, Role, NewX, NewY, NewStamina, InjuryMessage]).
 
 % Run the simulation for all rounds
 run_simulation :-
