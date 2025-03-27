@@ -155,10 +155,10 @@ simulate_round :-
     
 simulate_round :-
     game_state(round, Round),
-    (Round =:= 30 -> 
+    (Round =:= 31 -> 
         check_half_time,
-        retract(game_state(round, 30)),
-        assertz(game_state(round, 31)),
+        retract(game_state(round, 31)),
+        assertz(game_state(round, 32)),
         format('~nRound 31 (Second Half Begins):~n')
     ;
         format('~nRound ~w:~n', [Round])),
@@ -185,7 +185,7 @@ simulate_round :-
     format('Ball is now at (~w, ~w)~n', [BX, BY]),
     
     % Increment round counter if not just after halftime
-    (Round =\= 30 ->
+    (Round =\= 31 ->
         retract(game_state(round, Round)),
         NewRound is Round + 1,
         assertz(game_state(round, NewRound))
