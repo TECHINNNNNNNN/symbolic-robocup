@@ -9,7 +9,7 @@ goal_position(team2, 0, 25).    % Team 2's goal at the left end
 :- dynamic ball/1.
 :- dynamic player/7.
 :- dynamic game_state/2.
-:- dynamic rested_last_round/2.  % New predicate to track if a player rested last round
+:- dynamic rested_last_round/2.  % Track if a player rested last round
 
 % Sign function for movement
 sign(X, 1) :- X > 0.
@@ -38,8 +38,9 @@ move_towards_ball(Team, Role) :-
     retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending)),
     assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed, Dribbling, Defending)).
 
-% Kick the ball toward the opponent's goal
+% Kick the ball toward the opponent's goal (for field players)
 kick_ball(Team, Role) :-
+    Role \= goalkeeper,
     \+ rested_last_round(Team, Role),  % Player can't kick if they rested last round
     player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending),
     ball(position(X2, Y2)),
@@ -57,24 +58,77 @@ kick_ball(Team, Role) :-
     assertz(ball(position(NewBallX, NewBallY))),
     format('~w ~w kicks the ball to (~w, ~w)~n', [Team, Role, NewBallX, NewBallY]).
 
-% Goalkeeper catches the ball if it's close enough
+% Goalkeeper-specific kick (long powerful kick)
+goalkeeper_kick(Team) :-
+    player(Team, goalkeeper, position(X1, Y1), Stamina, Speed, Dribbling, Defending),
+    ball(position(X2, Y2)),
+    abs(X1 - X2) =< 2, abs(Y1 - Y2) =< 2,
+    % Goalkeepers kick toward the center line or to a teammate
+    (random(3) =:= 0 ->  % 1/3 chance of kicking to center line
+        NewBallX is 50,
+        NewBallY is 25,
+        format('~w goalkeeper makes a long goal kick to center!~n', [Team])
+    ;
+        % Otherwise kick to a teammate (simplified - just kick forward)
+        (Team = team1 -> 
+            TargetX is X1 + 40,
+            format('~w goalkeeper distributes the ball forward~n', [Team])
+        ;
+            TargetX is X1 - 40,
+            format('~w goalkeeper distributes the ball forward~n', [Team])),
+        % Keep Y coordinate within reasonable range
+        NewBallY is max(5, min(45, Y1 + random(21) - 10)),
+        NewBallX is TargetX
+    ),
+    field(size(FieldWidth, FieldHeight)),
+    NewBallX >= 0, NewBallX =< FieldWidth,
+    NewBallY >= 0, NewBallY =< FieldHeight,
+    retract(ball(position(X2, Y2))),
+    assertz(ball(position(NewBallX, NewBallY))).
+
+% Goalkeeper actions (catch or kick)
+goalkeeper_actions(Team) :-
+    player(Team, goalkeeper, position(X, Y), Stamina, Speed, Dribbling, Defending), 
+    ball(position(BX, BY)),
+    abs(X - BX) =< 2, abs(Y - BY) =< 2,
+    % Decide whether to catch or kick (50/50 chance)
+    (random(2) =:= 0 ->
+        catch_ball(Team)
+    ;
+        goalkeeper_kick(Team)
+    ).
+
+% Goalkeeper catches the ball
 catch_ball(Team) :-
     player(Team, goalkeeper, position(X, Y), Stamina, Speed, Dribbling, Defending), 
     ball(position(BX, BY)),
     abs(X - BX) =< 2, abs(Y - BY) =< 2,
     retract(ball(position(BX, BY))),
-    assertz(ball(position(X, Y))),
-    format('~w goalkeeper catches the ball!~n', [Team]).
+    % Position the ball slightly in front of the goalkeeper (1 unit away)
+    (Team = team1 -> NewBallX is X + 1 ; NewBallX is X - 1),
+    assertz(ball(position(NewBallX, Y))),
+    format('~w goalkeeper catches the ball and positions it at (~w, ~w)!~n', [Team, NewBallX, Y]).
 
 % Goal detection
 goal_scored(Team) :-
     ball(position(X, Y)),
     goal_position(OtherTeam, GoalX, GoalY),
     Team \= OtherTeam,
-    abs(X - GoalX) =< 2,
+    % Check if the ball is actually in the goal (not just near it)
+    (OtherTeam = team1 -> 
+        X =< 2  % Team1's goal is at X=0, so ball X should be <= 2
+    ; 
+        X >= 98  % Team2's goal is at X=100, so ball X should be >= 98
+    ),
     GoalYMin is GoalY - 5,
     GoalYMax is GoalY + 5,
     Y >= GoalYMin, Y =< GoalYMax,
+    % Additional check to make sure no goalkeeper is holding the ball
+    \+ (
+        player(OtherTeam, goalkeeper, position(GKX, GKY), _, _, _, _),
+        abs(X - GKX) =< 2, 
+        abs(Y - GKY) =< 2
+    ),
     game_state(score(Team, CurrentScore)),
     NewScore is CurrentScore + 1,
     retract(game_state(score(Team, CurrentScore))),
@@ -115,7 +169,8 @@ reset_positions :-
     retract(player(team2, defender2, _, Stamina9, Speed9, Dribbling9, Defending9)),
     assertz(player(team2, defender2, position(80, 35), Stamina9, Speed9, Dribbling9, Defending9)),
     retract(player(team2, goalkeeper, _, Stamina10, Speed10, Dribbling10, Defending10)),
-    assertz(player(team2, goalkeeper, position(100, 25), Stamina10, Speed10, Dribbling10, Defending10)).
+    assertz(player(team2, goalkeeper, position(100, 25), Stamina10, Speed10, Dribbling10, Defending10)),
+    format('All players reset to their starting positions.~n').
 
 % Simulate one round of the game
 simulate_round :-
@@ -125,10 +180,11 @@ simulate_round :-
 
 simulate_round :-
     game_state(round, Round),
-    (Round =:= 30 -> 
+    (Round =:= 31 -> 
         check_half_time,
-        retract(game_state(round, 30)),
-        assertz(game_state(round, 31)),
+        reset_positions,  % Reset player positions at halftime
+        retract(game_state(round, 31)),
+        assertz(game_state(round, 32)),
         format('~nRound 31 (Second Half Begins):~n')
     ;
         format('~nRound ~w:~n', [Round])),
@@ -140,6 +196,9 @@ simulate_round :-
     % Clear previous round's rest status
     retractall(rested_last_round(_, _)),
     
+    % Goalkeeper actions
+    (goalkeeper_actions(team1) ; goalkeeper_actions(team2) ; true),
+    
     % All players move or rest
     move_and_report(team1, forward1),
     move_and_report(team1, forward2),
@@ -150,33 +209,17 @@ simulate_round :-
     move_and_report(team2, defender1),
     move_and_report(team2, defender2),
     
-    % Goalkeepers attempt to catch (assuming they don't rest for simplicity)
-    (catch_ball(team1) ; catch_ball(team2) ; true),
-    
     % Display ball position
     ball(position(BX, BY)),
     format('Ball is now at (~w, ~w)~n', [BX, BY]),
     
     % Increment round counter if not just after halftime
-    (Round =\= 30 ->
+    (Round =\= 31 ->
         retract(game_state(round, Round)),
         NewRound is Round + 1,
         assertz(game_state(round, NewRound))
     ;
         true).
-
-
-% Check for half-time and reset stamina
-check_half_time :-
-    format('~nHalf time!~n'),
-    % Reset stamina for all players to 90
-    (player(Team, Role, Pos, Stamina, Speed, Dribbling, Defending),
-     retract(player(Team, Role, Pos, Stamina, Speed, Dribbling, Defending)),
-     assertz(player(Team, Role, Pos, 90, Speed, Dribbling, Defending)),
-     format('~w ~w stamina reset to 90~n', [Team, Role]),
-     fail
-    ; true),
-    format('Stamina reset complete for all players.~n').
 
 % Helper predicate to move and report player status
 move_and_report(Team, Role) :-
@@ -217,7 +260,7 @@ move_and_report(Team, Role) :-
     NewX >= 0, NewX =< FieldWidth,
     NewY >= 0, NewY =< FieldHeight,
     BaseStamina is Stamina - Speed,
-    (random(10) =:= 0 -> 
+    (random(20) =:= 0 -> 
         NewStamina is BaseStamina - 10,
         InjuryMessage = ' and gets injured (stamina -10)'
     ; 
@@ -227,6 +270,22 @@ move_and_report(Team, Role) :-
     retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending)),
     assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed, Dribbling, Defending)),
     format('~w ~w moves to (~w, ~w), stamina ~w~w~n', [Team, Role, NewX, NewY, NewStamina, InjuryMessage]).
+
+% Check for half-time and reset stamina
+check_half_time :-
+    format('~nHalf time!~n'),
+    % Reset ball to center
+    retract(ball(_)),
+    assertz(ball(position(50, 25))),
+    format('Ball is reset to center (50, 25) for second half~n'),
+    % Reset stamina for all players to 90
+    (player(Team, Role, Pos, Stamina, Speed, Dribbling, Defending),
+     retract(player(Team, Role, Pos, Stamina, Speed, Dribbling, Defending)),
+     assertz(player(Team, Role, Pos, 90, Speed, Dribbling, Defending)),
+     format('~w ~w stamina reset to 90~n', [Team, Role]),
+     fail
+    ; true),
+    format('Stamina reset complete for all players.~n').
 
 % Run the simulation for all rounds
 run_simulation :-
@@ -249,18 +308,21 @@ start_game :-
     
     assertz(ball(position(50, 25))),
     
+    % Initialize Team 1 players
     assertz(player(team1, forward1, position(30, 20), 100, 3, 70, 30)),
     assertz(player(team1, forward2, position(30, 30), 100, 3, 65, 35)),
     assertz(player(team1, defender1, position(20, 15), 100, 2, 40, 80)),
     assertz(player(team1, defender2, position(20, 35), 100, 2, 45, 75)),
-    assertz(player(team1, goalkeeper, position(0, 25), 100, 1, 20, 90)),
+    assertz(player(team1, goalkeeper, position(0, 25), 100, 1, 30, 90)), % Higher dribbling for better kicks
     
+    % Initialize Team 2 players
     assertz(player(team2, forward1, position(70, 20), 100, 3, 75, 25)),
     assertz(player(team2, forward2, position(70, 30), 100, 3, 80, 20)),
     assertz(player(team2, defender1, position(80, 15), 100, 2, 35, 85)),
     assertz(player(team2, defender2, position(80, 35), 100, 2, 30, 90)),
-    assertz(player(team2, goalkeeper, position(100, 25), 100, 1, 15, 95)),
+    assertz(player(team2, goalkeeper, position(100, 25), 100, 1, 35, 95)), % Higher dribbling for better kicks
     
+    % Initialize game state
     assertz(game_state(round, 1)),
     assertz(game_state(score(team1, 0))),
     assertz(game_state(score(team2, 0))),
