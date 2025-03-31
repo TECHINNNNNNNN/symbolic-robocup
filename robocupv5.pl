@@ -492,14 +492,14 @@ start_game :-
     assertz(player(team1, forward2, position(70, 30), 100, 3, 75, 40)),  % Higher dribbling
     assertz(player(team1, defender1, position(80, 15), 100, 2, 45, 85)), % Same defending
     assertz(player(team1, defender2, position(80, 35), 100, 2, 50, 80)), % Same defending
-    assertz(player(team1, goalkeeper, position(0, 25), 100, 1, 40, 90)), % Better balanced GK
+    assertz(player(team1, goalkeeper, position(100, 25), 100, 1, 40, 90)), % Better balanced GK
     
     % Initialize Team 2 players with balanced stats
     assertz(player(team2, forward1, position(30, 20), 100, 3, 75, 35)),  % Slightly lower dribbling
     assertz(player(team2, forward2, position(30, 30), 100, 3, 70, 40)),  % Slightly lower dribbling
     assertz(player(team2, defender1, position(20, 15), 100, 2, 45, 85)), % Same defending
     assertz(player(team2, defender2, position(20, 35), 100, 2, 50, 80)), % Same defending
-    assertz(player(team2, goalkeeper, position(100, 25), 100, 1, 40, 90)), % Better balanced GK
+    assertz(player(team2, goalkeeper, position(0, 25), 100, 1, 40, 90)), % Better balanced GK
     
     % Initialize game state
     assertz(game_state(round, 1)),
