@@ -283,7 +283,7 @@ reset_positions :-
     retract(player(team1, defender2, _, Stamina4, Speed4, Dribbling4, Defending4)),
     assertz(player(team1, defender2, position(80, 35), Stamina4, Speed4, Dribbling4, Defending4)),
     retract(player(team1, goalkeeper, _, Stamina5, Speed5, Dribbling5, Defending5)),
-    assertz(player(team1, goalkeeper, position(0, 25), Stamina5, Speed5, Dribbling5, Defending5)),
+    assertz(player(team1, goalkeeper, position(100, 25), Stamina5, Speed5, Dribbling5, Defending5)),
     
     % Team 2
     retract(player(team2, forward1, _, Stamina6, Speed6, Dribbling6, Defending6)),
@@ -295,7 +295,7 @@ reset_positions :-
     retract(player(team2, defender2, _, Stamina9, Speed9, Dribbling9, Defending9)),
     assertz(player(team2, defender2, position(20, 35), Stamina9, Speed9, Dribbling9, Defending9)),
     retract(player(team2, goalkeeper, _, Stamina10, Speed10, Dribbling10, Defending10)),
-    assertz(player(team2, goalkeeper, position(100, 25), Stamina10, Speed10, Dribbling10, Defending10)),
+    assertz(player(team2, goalkeeper, position(0, 25), Stamina10, Speed10, Dribbling10, Defending10)),
 
     game_state(score(team1, S1)),
     game_state(score(team2, S2)),
