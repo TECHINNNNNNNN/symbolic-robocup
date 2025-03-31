@@ -128,7 +128,7 @@ dribble_ball(Team, Role) :-
         (X1 < 90 -> DX is 1 ; DX is 0)  % Move forward if not too close to goal
     ;
         (X1 > 10 -> DX is -1 ; DX is 0)),  % Move forward if not too close to goal
-    DribblePower is 2 + (Attacking // 30),  % Increased base dribble power
+    DribblePower is 1 + (Attacking // 30),  % Increased base dribble power
     NewBallX is X2 + (DX * DribblePower),
     NewBallY is Y2 + (random(3) - 1),  % Add slight vertical movement
     update_ball_position(NewBallX, NewBallY),
