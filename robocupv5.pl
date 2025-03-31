@@ -357,8 +357,8 @@ process_ball_actions :-
     
     % Goalkeeper actions (only when ball is near goal)
     (ball(position(BX, BY)),
-     ((BX >= 95, goalkeeper_actions(team2)) ; 
-      (BX =< 5, goalkeeper_actions(team1)) ; true)),
+     ((BX >= 95, goalkeeper_actions(team1)) ; 
+      (BX =< 5, goalkeeper_actions(team2)) ; true)),
     !.  % Cut to prevent multiple goalkeeper actions
 
 % Process all player movements in sequence
