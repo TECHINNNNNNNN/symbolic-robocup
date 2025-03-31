@@ -275,25 +275,25 @@ reset_ball :-
 reset_positions :-
     % Team 1
     retract(player(team1, forward1, _, Stamina1, Speed1, Dribbling1, Defending1)),
-    assertz(player(team1, forward1, position(30, 20), Stamina1, Speed1, Dribbling1, Defending1)),
+    assertz(player(team1, forward1, position(70, 20), Stamina1, Speed1, Dribbling1, Defending1)),
     retract(player(team1, forward2, _, Stamina2, Speed2, Dribbling2, Defending2)),
-    assertz(player(team1, forward2, position(30, 30), Stamina2, Speed2, Dribbling2, Defending2)),
+    assertz(player(team1, forward2, position(70, 30), Stamina2, Speed2, Dribbling2, Defending2)),
     retract(player(team1, defender1, _, Stamina3, Speed3, Dribbling3, Defending3)),
-    assertz(player(team1, defender1, position(20, 15), Stamina3, Speed3, Dribbling3, Defending3)),
+    assertz(player(team1, defender1, position(80, 15), Stamina3, Speed3, Dribbling3, Defending3)),
     retract(player(team1, defender2, _, Stamina4, Speed4, Dribbling4, Defending4)),
-    assertz(player(team1, defender2, position(20, 35), Stamina4, Speed4, Dribbling4, Defending4)),
+    assertz(player(team1, defender2, position(80, 35), Stamina4, Speed4, Dribbling4, Defending4)),
     retract(player(team1, goalkeeper, _, Stamina5, Speed5, Dribbling5, Defending5)),
     assertz(player(team1, goalkeeper, position(0, 25), Stamina5, Speed5, Dribbling5, Defending5)),
     
     % Team 2
     retract(player(team2, forward1, _, Stamina6, Speed6, Dribbling6, Defending6)),
-    assertz(player(team2, forward1, position(70, 20), Stamina6, Speed6, Dribbling6, Defending6)),
+    assertz(player(team2, forward1, position(30, 20), Stamina6, Speed6, Dribbling6, Defending6)),
     retract(player(team2, forward2, _, Stamina7, Speed7, Dribbling7, Defending7)),
-    assertz(player(team2, forward2, position(70, 30), Stamina7, Speed7, Dribbling7, Defending7)),
+    assertz(player(team2, forward2, position(30, 30), Stamina7, Speed7, Dribbling7, Defending7)),
     retract(player(team2, defender1, _, Stamina8, Speed8, Dribbling8, Defending8)),
-    assertz(player(team2, defender1, position(80, 15), Stamina8, Speed8, Dribbling8, Defending8)),
+    assertz(player(team2, defender1, position(20, 15), Stamina8, Speed8, Dribbling8, Defending8)),
     retract(player(team2, defender2, _, Stamina9, Speed9, Dribbling9, Defending9)),
-    assertz(player(team2, defender2, position(80, 35), Stamina9, Speed9, Dribbling9, Defending9)),
+    assertz(player(team2, defender2, position(20, 35), Stamina9, Speed9, Dribbling9, Defending9)),
     retract(player(team2, goalkeeper, _, Stamina10, Speed10, Dribbling10, Defending10)),
     assertz(player(team2, goalkeeper, position(100, 25), Stamina10, Speed10, Dribbling10, Defending10)),
 
@@ -488,17 +488,17 @@ start_game :-
     assertz(ball(position(50, 25))),
     
     % Initialize Team 1 players with improved stats
-    assertz(player(team1, forward1, position(30, 20), 100, 3, 80, 35)),  % Higher dribbling
-    assertz(player(team1, forward2, position(30, 30), 100, 3, 75, 40)),  % Higher dribbling
-    assertz(player(team1, defender1, position(20, 15), 100, 2, 45, 85)), % Same defending
-    assertz(player(team1, defender2, position(20, 35), 100, 2, 50, 80)), % Same defending
+    assertz(player(team1, forward1, position(70, 20), 100, 3, 80, 35)),  % Higher dribbling
+    assertz(player(team1, forward2, position(70, 30), 100, 3, 75, 40)),  % Higher dribbling
+    assertz(player(team1, defender1, position(80, 15), 100, 2, 45, 85)), % Same defending
+    assertz(player(team1, defender2, position(80, 35), 100, 2, 50, 80)), % Same defending
     assertz(player(team1, goalkeeper, position(0, 25), 100, 1, 40, 90)), % Better balanced GK
     
     % Initialize Team 2 players with balanced stats
-    assertz(player(team2, forward1, position(70, 20), 100, 3, 75, 35)),  % Slightly lower dribbling
-    assertz(player(team2, forward2, position(70, 30), 100, 3, 70, 40)),  % Slightly lower dribbling
-    assertz(player(team2, defender1, position(80, 15), 100, 2, 45, 85)), % Same defending
-    assertz(player(team2, defender2, position(80, 35), 100, 2, 50, 80)), % Same defending
+    assertz(player(team2, forward1, position(30, 20), 100, 3, 75, 35)),  % Slightly lower dribbling
+    assertz(player(team2, forward2, position(30, 30), 100, 3, 70, 40)),  % Slightly lower dribbling
+    assertz(player(team2, defender1, position(20, 15), 100, 2, 45, 85)), % Same defending
+    assertz(player(team2, defender2, position(20, 35), 100, 2, 50, 80)), % Same defending
     assertz(player(team2, goalkeeper, position(100, 25), 100, 1, 40, 90)), % Better balanced GK
     
     % Initialize game state
