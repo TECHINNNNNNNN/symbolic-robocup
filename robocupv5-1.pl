@@ -211,17 +211,13 @@ opponent_player(X, Y, Team, Role) :-
 goalkeeper_actions(Team) :-
     player(Team, goalkeeper, position(GKX, GKY), _, _, _, _),
     ball(position(BX, BY)),
-    abs(GKX - BX) =< 1,  % Reduced from 2 to 1
-    abs(GKY - BY) =< 1,  % Reduced from 2 to 1
-    % Calculate goalkeeper's chance of success based on position and random factor
-    (abs(GKX - BX) =< 1, abs(GKY - BY) =< 1 ->
-        % Very close to ball - 35% chance to save (reduced from 40%)
-        random(100) < 35
-    ;
-    % Within range but not perfect position - 15% chance to save (reduced from 20%)
-    random(100) < 15
-    ),
-    !,  % Cut to prevent backtracking if save is successful
+    % Increase the range the goalkeeper can interact with the ball
+    abs(GKX - BX) =< 5,  % Increased from 1 to 5
+    abs(GKY - BY) =< 5,  % Increased from 1 to 5
+    
+    % Always succeed for 100% save chance (no random check needed)
+    !,  % Cut to prevent backtracking
+    
     format('~w goalkeeper makes a save!~n', [Team]),
     goalkeeper_kick(Team).
 
@@ -346,20 +342,18 @@ show_current_score :-
 
 % Process ball actions (goal check, closest player action, goalkeeper action)
 process_ball_actions :-
-    % First check for goals - Use once/1 to ensure goal detection happens at most once
-    % This prevents duplicate goal processing in the same round
+    % First check for goalkeeper actions
+    (ball(position(BX, BY)),
+     ((BX >= 85, goalkeeper_actions(team1)) ; 
+      (BX =< 15, goalkeeper_actions(team2)) ; true)),
+    
+    % Then check for goals
     once((goal_scored(team1) ; goal_scored(team2) ; true)),
     
     % Find the closest player to the ball who can act
     (find_closest_player(Team, Role),
      kick_ball(Team, Role) ; true),
-    !,  % Cut to prevent multiple ball actions
-    
-    % Goalkeeper actions (only when ball is near goal)
-    (ball(position(BX, BY)),
-     ((BX >= 95, goalkeeper_actions(team1)) ; 
-      (BX =< 5, goalkeeper_actions(team2)) ; true)),
-    !.  % Cut to prevent multiple goalkeeper actions
+    !.
 
 % Process all player movements in sequence
 process_all_player_movements :-
