@@ -56,7 +56,7 @@ can_pass(Team, X, Y, CurrentRole, TargetRole) :-
 
 % Move towards the ball with improved positioning
 move_towards_ball(Team, Role) :-
-    player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending),
+    player(Team, Role, position(X1, Y1), Stamina, Speed, Attacking, Defending),
     ball(position(X2, Y2)),
     (Role = defender -> 
         (goal_position(Team, GoalX, _),
@@ -75,8 +75,8 @@ move_towards_ball(Team, Role) :-
     NewX >= 0, NewX =< FieldWidth,
     NewY >= 0, NewY =< FieldHeight,
     NewStamina is Stamina - Speed,
-    retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Dribbling, Defending)),
-    assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed, Dribbling, Defending)).
+    retract(player(Team, Role, position(X1, Y1), Stamina, Speed, Attacking, Defending)),
+    assertz(player(Team, Role, position(NewX, NewY), NewStamina, Speed, Attacking, Defending)).
 
 % Helper predicate to update ball position with bounds checking
 update_ball_position(NewX, NewY) :-
@@ -88,12 +88,12 @@ update_ball_position(NewX, NewY) :-
 
 % Shoot the ball with high power
 shoot_ball(Team, Role) :-
-    player(Team, Role, position(X1, Y1), _, _, Dribbling, _),
+    player(Team, Role, position(X1, Y1), _, _, Attacking, _),
     ball(position(X2, Y2)),
     (Team = team1 -> goal_position(team2, GoalX, GoalY) ; goal_position(team1, GoalX, GoalY)),
     distance(X1, Y1, GoalX, GoalY, Distance),
     % Base power balanced for realistic scoring
-    BasePower is 40 + (Dribbling // 2),  % Slightly increased base power
+    BasePower is 40 + (Attacking // 2),  % Slightly increased base power
     % Power decreases more gradually with distance
     DistanceFactor is max(6, 9 - (Distance // 10)),  % Adjusted distance scaling
     KickPower is (BasePower * DistanceFactor) // 10,  % Integer division
@@ -108,25 +108,25 @@ shoot_ball(Team, Role) :-
     format('~w ~w shoots towards goal!~n', [Team, Role]).
 
 pass_ball(Team, Role, TargetRole) :-
-    player(Team, Role, _, _, _, Dribbling, _),
+    player(Team, Role, _, _, _, Attacking, _),
     player(Team, TargetRole, position(TX, TY), _, _, _, _),
     ball(position(X2, Y2)),
     XDiff is TX - X2, YDiff is TY - Y2,
     sign(XDiff, DX), sign(YDiff, DY),
-    PassPower is 3 + (Dribbling // 30),
+    PassPower is 3 + (Attacking // 30),
     NewBallX is X2 + (DX * PassPower),
     NewBallY is Y2 + (DY * PassPower),
     update_ball_position(NewBallX, NewBallY),
     format('~w ~w passes to ~w~n', [Team, Role, TargetRole]).
 
 dribble_ball(Team, Role) :-
-    player(Team, Role, position(X1, Y1), _, _, Dribbling, _),
+    player(Team, Role, position(X1, Y1), _, _, Attacking, _),
     ball(position(X2, Y2)),
     (Team = team1 -> 
         (X1 < 90 -> DX is 1 ; DX is 0)  % Move forward if not too close to goal
     ;
         (X1 > 10 -> DX is -1 ; DX is 0)),  % Move forward if not too close to goal
-    DribblePower is 2 + (Dribbling // 30),  % Increased base dribble power
+    DribblePower is 2 + (Attacking // 30),  % Increased base dribble power
     NewBallX is X2 + (DX * DribblePower),
     NewBallY is Y2 + (random(3) - 1),  % Add slight vertical movement
     update_ball_position(NewBallX, NewBallY),
@@ -143,8 +143,8 @@ is_closest_to_ball(Team, Role) :-
         OtherDistance < MyDistance).
 
 % Helper predicate to get player attributes at a position
-player_at(X, Y, Team, Role, Dribbling, Stamina) :-
-    player(Team, Role, position(X, Y), Stamina, _, Dribbling, _).
+player_at(X, Y, Team, Role, Attacking, Stamina) :-
+    player(Team, Role, position(X, Y), Stamina, _, Attacking, _).
 
 % Kick the ball toward the opponent's goal (for field players)
 kick_ball(Team, Role) :-
@@ -273,28 +273,28 @@ reset_ball :-
 % Reset all player positions after a goal
 reset_positions :-
     % Team 1
-    retract(player(team1, forward1, _, Stamina1, Speed1, Dribbling1, Defending1)),
-    assertz(player(team1, forward1, position(70, 20), Stamina1, Speed1, Dribbling1, Defending1)),
-    retract(player(team1, forward2, _, Stamina2, Speed2, Dribbling2, Defending2)),
-    assertz(player(team1, forward2, position(70, 30), Stamina2, Speed2, Dribbling2, Defending2)),
-    retract(player(team1, defender1, _, Stamina3, Speed3, Dribbling3, Defending3)),
-    assertz(player(team1, defender1, position(80, 15), Stamina3, Speed3, Dribbling3, Defending3)),
-    retract(player(team1, defender2, _, Stamina4, Speed4, Dribbling4, Defending4)),
-    assertz(player(team1, defender2, position(80, 35), Stamina4, Speed4, Dribbling4, Defending4)),
-    retract(player(team1, goalkeeper, _, Stamina5, Speed5, Dribbling5, Defending5)),
-    assertz(player(team1, goalkeeper, position(100, 25), Stamina5, Speed5, Dribbling5, Defending5)),
+    retract(player(team1, forward1, _, Stamina1, Speed1, Attacking1, Defending1)),
+    assertz(player(team1, forward1, position(70, 20), Stamina1, Speed1, Attacking1, Defending1)),
+    retract(player(team1, forward2, _, Stamina2, Speed2, Attacking2, Defending2)),
+    assertz(player(team1, forward2, position(70, 30), Stamina2, Speed2, Attacking2, Defending2)),
+    retract(player(team1, defender1, _, Stamina3, Speed3, Attacking3, Defending3)),
+    assertz(player(team1, defender1, position(80, 15), Stamina3, Speed3, Attacking3, Defending3)),
+    retract(player(team1, defender2, _, Stamina4, Speed4, Attacking4, Defending4)),
+    assertz(player(team1, defender2, position(80, 35), Stamina4, Speed4, Attacking4, Defending4)),
+    retract(player(team1, goalkeeper, _, Stamina5, Speed5, Attacking5, Defending5)),
+    assertz(player(team1, goalkeeper, position(100, 25), Stamina5, Speed5, Attacking5, Defending5)),
     
     % Team 2
-    retract(player(team2, forward1, _, Stamina6, Speed6, Dribbling6, Defending6)),
-    assertz(player(team2, forward1, position(30, 20), Stamina6, Speed6, Dribbling6, Defending6)),
-    retract(player(team2, forward2, _, Stamina7, Speed7, Dribbling7, Defending7)),
-    assertz(player(team2, forward2, position(30, 30), Stamina7, Speed7, Dribbling7, Defending7)),
-    retract(player(team2, defender1, _, Stamina8, Speed8, Dribbling8, Defending8)),
-    assertz(player(team2, defender1, position(20, 15), Stamina8, Speed8, Dribbling8, Defending8)),
-    retract(player(team2, defender2, _, Stamina9, Speed9, Dribbling9, Defending9)),
-    assertz(player(team2, defender2, position(20, 35), Stamina9, Speed9, Dribbling9, Defending9)),
-    retract(player(team2, goalkeeper, _, Stamina10, Speed10, Dribbling10, Defending10)),
-    assertz(player(team2, goalkeeper, position(0, 25), Stamina10, Speed10, Dribbling10, Defending10)),
+    retract(player(team2, forward1, _, Stamina6, Speed6, Attacking6, Defending6)),
+    assertz(player(team2, forward1, position(30, 20), Stamina6, Speed6, Attacking6, Defending6)),
+    retract(player(team2, forward2, _, Stamina7, Speed7, Attacking7, Defending7)),
+    assertz(player(team2, forward2, position(30, 30), Stamina7, Speed7, Attacking7, Defending7)),
+    retract(player(team2, defender1, _, Stamina8, Speed8, Attacking8, Defending8)),
+    assertz(player(team2, defender1, position(20, 15), Stamina8, Speed8, Attacking8, Defending8)),
+    retract(player(team2, defender2, _, Stamina9, Speed9, Attacking9, Defending9)),
+    assertz(player(team2, defender2, position(20, 35), Stamina9, Speed9, Attacking9, Defending9)),
+    retract(player(team2, goalkeeper, _, Stamina10, Speed10, Attacking10, Defending10)),
+    assertz(player(team2, goalkeeper, position(0, 25), Stamina10, Speed10, Attacking10, Defending10)),
 
     game_state(score(team1, S1)),
     game_state(score(team2, S2)),
@@ -413,8 +413,8 @@ process_player_movement(Team, Role) :-
     NewY >= 0, NewY =< FieldHeight,
     BaseStamina is Stamina - Speed,
     (random(50) =:= 0 ->  % Reduced injury rate from 1/20 to 1/50
-        NewStamina is BaseStamina - 5,  % Reduced injury penalty from 10 to 5
-        InjuryMessage = ' and gets injured (stamina -5)'
+        NewStamina is BaseStamina - 10,
+        InjuryMessage = ' and gets injured (stamina -10)'
     ; 
         NewStamina is BaseStamina,
         InjuryMessage = ''
@@ -489,14 +489,14 @@ start_game :-
     assertz(player(team1, forward2, position(70, 30), 100, 3, 75, 40)),  % Higher dribbling
     assertz(player(team1, defender1, position(80, 15), 100, 2, 45, 85)), % Same defending
     assertz(player(team1, defender2, position(80, 35), 100, 2, 50, 80)), % Same defending
-    assertz(player(team1, goalkeeper, position(100, 25), 100, 1, 40, 90)), % Better balanced GK
+    assertz(player(team1, goalkeeper, position(100, 25), 100, 1, 30, 90)), % Better balanced GK
     
     % Initialize Team 2 players with balanced stats
     assertz(player(team2, forward1, position(30, 20), 100, 3, 75, 35)),  % Slightly lower dribbling
     assertz(player(team2, forward2, position(30, 30), 100, 3, 70, 40)),  % Slightly lower dribbling
     assertz(player(team2, defender1, position(20, 15), 100, 2, 45, 85)), % Same defending
     assertz(player(team2, defender2, position(20, 35), 100, 2, 50, 80)), % Same defending
-    assertz(player(team2, goalkeeper, position(0, 25), 100, 1, 40, 90)), % Better balanced GK
+    assertz(player(team2, goalkeeper, position(0, 25), 100, 1, 30, 90)), % Better balanced GK
     
     % Initialize game state
     assertz(game_state(round, 1)),
