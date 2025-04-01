@@ -480,6 +480,7 @@ run_simulation :-
                [team1, FinalScore1, team2, FinalScore2])
     ;
         simulate_round,
+        sleep(0.5),  % Wait for 0.5 second before next round
         run_simulation).
 
 show_scores :-
