@@ -147,10 +147,6 @@ is_closest_to_ball(Team, Role) :-
         distance(OtherX, OtherY, X2, Y2, OtherDistance),
         OtherDistance < MyDistance).
 
-% Helper predicate to get player attributes at a position
-player_at(X, Y, Team, Role, Attacking, Stamina) :-
-    player(Team, Role, position(X, Y), Stamina, _, Attacking, _).
-
 % Kick the ball toward the opponent's goal (for outfield players)
 kick_ball(Team, Role) :-
     Role \= goalkeeper,
@@ -484,10 +480,6 @@ run_simulation :-
         sleep(0.5),  % 0.5 seconds pause before next round
         run_simulation).
 
-show_scores :-
-    findall(score(T,S), game_state(score(T,S)), Scores),
-    format('Current score facts: ~w~n', [Scores]).
-
 % Initialize and run the game
 start_game :-
     retractall(ball(_)),
@@ -518,75 +510,3 @@ start_game :-
     
     format('Game started!~n'),
     run_simulation.
-
-% Move predicate to encourage forward movement when near goal
-move(Player, Team, NewX, NewY) :-
-    player_position(Player, Team, X, Y),
-    player_stamina(Player, Team, Stamina),
-    Stamina > 5,
-    (Team = team1 ->
-        % Team 1 attacks right goal
-        (X < 70 -> 
-            NewX is X + random(4),
-            random_y_movement(Y, NewY)
-        ;
-            random_x_movement(X, NewX),
-            random_y_movement(Y, NewY)
-        )
-    ;
-        % Team 2 attacks left goal
-        (X > 30 ->
-            NewX is X - random(4),
-            random_y_movement(Y, NewY)
-        ;
-            random_x_movement(X, NewX),
-            random_y_movement(Y, NewY)
-        )
-    ),
-    NewX >= 0, NewX =< 100,
-    NewY >= 0, NewY =< 50.
-
-% Add shooting condition when in scoring position
-update_game_state(Round) :-
-    ball_position(BallX, BallY),
-    (
-        % Check if any player is in shooting position
-        (player_position(Player, Team, X, Y),
-        has_ball(Player, Team),
-        (
-            (Team = team1, X > 75, abs(Y - 25) < 15) -> % Team 1 shooting position
-            attempt_shot(Player, Team, Round)
-        ;
-            (Team = team2, X < 25, abs(Y - 25) < 15) -> % Team 2 shooting position
-            attempt_shot(Player, Team, Round)
-        ;
-            update_player_positions(Round)
-        ))
-    ),
-    update_ball_position,
-    update_stamina,
-    !.
-
-% Add attempt_shot predicate
-attempt_shot(Player, Team, Round) :-
-    ball_position(BallX, BallY),
-    (Team = team1 ->
-        TargetX is 100,
-        TargetY is 25
-    ;
-        TargetX is 0,
-        TargetY is 25
-    ),
-    Distance is sqrt((TargetX - BallX) * (TargetX - BallX) + (TargetY - BallY) * (TargetY - BallY)),
-    random(1, 10, ShotPower),
-    (
-        ShotPower > Distance / 10 ->
-        % Successful shot
-        score_goal(Team),
-        format('~w ~w scores a goal!~n', [Team, Player]),
-        reset_ball_to_center
-    ;
-        % Missed shot
-        format('~w ~w attempts a shot but misses!~n', [Team, Player]),
-        reset_ball_to_center
-    ).
